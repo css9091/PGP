@@ -4,14 +4,14 @@ class LEC:
     def __init__(self):
         pass
 
-    def verify(self, node, cp, ing = None, msg = None):
+    def verify(self, node, cp, eg = None, msg = None):
         if msg is None:
             m = {
                 'cpid': cp.id,
                 'src': node,
                 'data': {
                     'type': 'ec',
-                    'route': [node],
+                    'route': [node]
                 }
             }
             cp.flood(m, self, node)
@@ -19,7 +19,7 @@ class LEC:
             route = msg['data']['route']
             frules = cp.get_rules_group_by_output()
             if node == 'D': return
-            if not ing == frules[node]: return
+            if not eg in frules[node]: return
             if node in route: return
             # space = Space(areas=msg['data']['space'])
             # space.multiply(frules[in_port])
@@ -33,7 +33,7 @@ class LEC:
                 'src': node,
                 'data': {
                     'type': 'ec',
-                    'route': route,
+                    'route': route
                 }
             }
-            cp.flood(m, self, node, ing)
+            cp.flood(m, self, node, eg)

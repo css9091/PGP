@@ -6,7 +6,7 @@ def has(node, states):
     return False
 
 class GPG:
-    def __init__(self):
+    def __init__(self, weak = False):
         with open('gpg.json') as json_file: 
             data = json.load(json_file)
 
@@ -19,9 +19,10 @@ class GPG:
             self.G.add_edge(u, v)
 
         self.verified_false = False
+        self.weak = weak
 
         
-    def verify(self, node, cp, ing = None, msg = None):
+    def verify(self, node, cp, eg = None, msg = None):
         if self.verified_false: 
             return # No need to verify anymore since the CP must be wrong
 
@@ -33,8 +34,20 @@ class GPG:
 
         frules = cp.get_rules_group_by_output()
         if msg is None: 
+            if self.weak:
+                m = {
+                    'cpid': cp.id,
+                    'src': node,
+                    'data': {
+                        'type': 'ec',
+                        'route': [node]
+                    }
+                }
+                cp.flood(m, self, node)
+                return
+
             # scan the actions in FIB
-            for eg_node in [frules[node]]:
+            for eg_node in frules[node]:
                 # print(node, "-?->", eg_node) 
                 # print(states)
 
@@ -73,14 +86,15 @@ class GPG:
             route = msg['data']['route']
             frules = cp.get_rules_group_by_output()
             if node == 'D': return
-            if not ing == frules[node]: return
+            if not eg in frules[node]: return
             if node in route: return
 
             ing_states = dict()
             for state in states:
-                if not has(ing, self.G.successors(state)):
-                    if not ing[0] in ing_states.keys():
-                        ing_states[ing[0]] = []
+                if has(eg, self.G.successors(state)):
+                    for ing in self.G.predecessors(state):
+                        if not ing[0] in ing_states.keys():
+                            ing_states[ing[0]] = []
                     # elif not ing[1] in ing_states[ing[0]]: 
                     #    ing_states[ing[0]].append()
 
@@ -90,7 +104,7 @@ class GPG:
                     'src': node,
                     'data': {
                         'type': 'ec',
-                        'route': [ing].append(route),
+                        'route': [ing] + route
                     }
                 }
                 cp.unicast(m, self, ing, node)

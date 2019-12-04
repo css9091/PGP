@@ -63,12 +63,12 @@ class Simulation:
         verify_list = []
         for u in self.N:
             if u in self.frule.keys():
-                v = self.frule[u]
+                v = self.frule[u][0] # FIXME
                 if d[u][v] + d[v][dst] == d[u][dst]: 
                     continue
             for v in self.L[u]:
                 if (not v == u) and d[u][v] + d[v][dst] == d[u][dst]:
-                    self.frule[u] = v
+                    self.frule[u] = [v]
                     verify_list.append(u)
                     print("frule:", u, "->", v)
                     break
@@ -85,7 +85,7 @@ class Simulation:
         secure_random = random.SystemRandom()
         v = secure_random.choice([v for v in self.L[u]])
 
-        self.frule[u] = v
+        self.frule[u] = [v]
         # print("frule:", u, "->", v)
 
         for p in self.protos:
@@ -101,9 +101,10 @@ def main():
 
     from gpg import GPG
     gpg_ins = GPG()
+    gpg_wek = GPG(weak = True)
 
-    d = network.test([lec_ins, gpg_ins])
-    print("Result: ", d[lec_ins], d[gpg_ins])
+    d = network.test([lec_ins, gpg_ins, gpg_wek])
+    # print("Result: ", d[lec_ins], d[gpg_ins])
     
     u, v = d[lec_ins]
     d_lec = [v]
@@ -111,10 +112,13 @@ def main():
     u, v = d[gpg_ins]
     d_gpg = [v]
 
+    u, v = d[gpg_wek]
+    d_gpg_w = [v]
+
     i = 1
     while i < 100:
         d = network.random_rule()
-        print("Result: ", d[lec_ins], d[gpg_ins])
+        # print("Result: ", d[lec_ins], d[gpg_ins])
 
         #import time
         #time.sleep(3)
@@ -126,6 +130,9 @@ def main():
 
         u, v = d[gpg_ins]
         d_gpg.append(v)
+
+        u, v = d[gpg_wek]
+        d_gpg_w.append(v)
     
     import matplotlib.pyplot as plt 
     cases = [u for u in range(i)]
@@ -133,12 +140,15 @@ def main():
 
     d_lec_d = [d_lec[0]]
     d_gpg_d = [d_gpg[0]]
+    d_gpg_wd = [d_gpg_w[0]]
     for u in range(1, i):
         d_lec_d.append(d_lec[u] - d_lec[u - 1])
         d_gpg_d.append(d_gpg[u] - d_gpg[u - 1])
+        d_gpg_wd.append(d_gpg_w[u] - d_gpg_w[u - 1])
 
     plt.plot(cases, d_lec_d, color='g')
     plt.plot(cases, d_gpg_d, color='orange')
+    plt.plot(cases, d_gpg_wd, color='b')
     plt.xlabel('Cases')
     plt.ylabel('throughput in each update')
     plt.title('Quick Simulation')
@@ -147,6 +157,7 @@ def main():
 
     plt.plot(cases, d_lec, color='g')
     plt.plot(cases, d_gpg, color='orange')
+    plt.plot(cases, d_gpg_w, color='b')
     plt.xlabel('Cases')
     plt.ylabel('throughput in total')
     plt.title('Quick Simulation')
