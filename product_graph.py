@@ -2,7 +2,7 @@ import json
 import networkx as nx
 import matplotlib.pyplot as plt
 
-filename = 'data.json'
+filename = 'data3.json'
 sources = ['S']
 
 G = nx.DiGraph()
@@ -10,6 +10,7 @@ node2Id = dict()
 
 ids = dict()
 table = dict()
+
 def node2Id(state, data, SM):
     s = str(state)
     if s in table:
@@ -39,6 +40,7 @@ def transition(sm, state, token):
     
 
 def extend(state, data, SM):
+    # Iterate every physical downstream node
     for v in data["Topology"]["links"][state["node"]]:
         vstate = dict()
         vstate["node"] = v
@@ -56,15 +58,18 @@ def extend(state, data, SM):
 with open(filename) as json_file:
     data = json.load(json_file)
 
+# Nodes
 N = data["Topology"]["links"].keys()
 # print(N)
 
+# List of state machine names
 SM = []
 for name in data.keys():
     if name != "Topology":
         SM.append(name)
 # print(SM)
 
+# Init virtual node ID bank
 for node in N:
     ids[node] = 0
 
@@ -74,6 +79,7 @@ for node in N:
 
     flag = True
     for name in SM:
+        # Check if node is the first transition from init state
         t, state[name] = transition(data[name], data[name]["init"], node)
         flag = flag and t
 
@@ -93,10 +99,13 @@ def verify(node):
         verify(vnode)
 
 for node in G.nodes():
+    # Verify paths ending with accepted states
+    # But maybe using node[1] is not a safe way
     if node[1] == "X":
         verify(node)
 
 import collections
+# Compare if two states are equal
 def compare(s, t):
     return collections.Counter(s) == collections.Counter(t)
 
